@@ -22,30 +22,11 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '18'
-
-      - name: Install dependencies
-        run: |
-          cd calendar-app
-          npm install
-
-      - name: Build calendar app
-        run: |
-          cd calendar-app
-          npm run build
-        env:
-          NODE_ENV: production
-
       - name: Prepare build output
         run: |
-          mv calendar-app/dist web-build
-          cd web-build
-          touch .nojekyll
-          echo "Build output prepared"
-          ls -la
+          mkdir -p web-build
+          cp site/index.html web-build/index.html
+          touch web-build/.nojekyll
 
       - name: Setup Pages
         uses: actions/configure-pages@v4

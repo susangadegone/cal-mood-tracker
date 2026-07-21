@@ -1,0 +1,609 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cal Mood Tracker — a day, planned and felt</title>
+<style>
+  :root {
+    --bg: #fbf3ef;
+    --panel: #f3ecfb;
+    --panel-line: #e4d9ee;
+    --ink: #2a2438;
+    --ink-muted: #756f8a;
+    --spine: #ddcdec;
+    --accent: #2f8f86;
+    --accent-ink: #12433e;
+    --accent-soft: #d7efec;
+    --card-shadow: 0 1px 0 rgba(42, 36, 56, 0.06);
+    --mood-excellent: #4fa876;
+    --mood-good: #4a8fc2;
+    --mood-okay: #cf9a3a;
+    --mood-poor: #cc6f92;
+    --mood-terrible: #8267b8;
+    --mood-excellent-soft: #dcefe3;
+    --mood-good-soft: #dcebf6;
+    --mood-okay-soft: #f6e9d2;
+    --mood-poor-soft: #f5dde6;
+    --mood-terrible-soft: #e6ddf3;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #211c2b;
+      --panel: #2b2438;
+      --panel-line: #3b3350;
+      --ink: #f3eefa;
+      --ink-muted: #b3a9c7;
+      --spine: #3f3654;
+      --accent: #5fc2b6;
+      --accent-ink: #d3f3ee;
+      --accent-soft: #2b4a46;
+      --card-shadow: none;
+      --mood-excellent: #6fc491;
+      --mood-good: #6cabdb;
+      --mood-okay: #e0b25c;
+      --mood-poor: #e28fac;
+      --mood-terrible: #a68ddb;
+      --mood-excellent-soft: #223a2c;
+      --mood-good-soft: #1f3543;
+      --mood-okay-soft: #3a2f1c;
+      --mood-poor-soft: #3a2530;
+      --mood-terrible-soft: #302849;
+    }
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: var(--bg);
+    color: var(--ink);
+    overflow-x: hidden;
+  }
+
+  body {
+    font-family: -apple-system, "Segoe UI", Roboto, system-ui, sans-serif;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .mono {
+    font-family: ui-monospace, "SF Mono", "Cascadia Code", Menlo, Consolas, monospace;
+    font-variant-numeric: tabular-nums;
+  }
+
+  h1, h2, h3 {
+    font-family: ui-rounded, "SF Pro Rounded", -apple-system, "Segoe UI", system-ui, sans-serif;
+    text-wrap: balance;
+    margin: 0;
+    color: var(--ink);
+  }
+
+  a { color: var(--accent); }
+  a:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+
+  .wrap {
+    max-width: 760px;
+    margin: 0 auto;
+    padding: 0 24px;
+  }
+
+  header.top {
+    padding: 64px 0 40px;
+    border-bottom: 1px solid var(--panel-line);
+  }
+
+  .eyebrow {
+    font-size: 0.78rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--accent-ink);
+    background: var(--accent-soft);
+    display: inline-block;
+    padding: 5px 12px;
+    border-radius: 999px;
+    margin-bottom: 22px;
+  }
+
+  h1.title {
+    font-size: clamp(2.2rem, 5vw, 3.1rem);
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    line-height: 1.08;
+  }
+
+  p.lede {
+    font-size: 1.15rem;
+    color: var(--ink-muted);
+    max-width: 62ch;
+    margin: 20px 0 0;
+  }
+
+  .meta-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 28px;
+  }
+
+  .pill {
+    font-size: 0.82rem;
+    padding: 6px 13px;
+    border-radius: 999px;
+    background: var(--panel);
+    border: 1px solid var(--panel-line);
+    color: var(--ink-muted);
+  }
+
+  .hero-diagram {
+    margin-top: 44px;
+    border: 1px solid var(--panel-line);
+    border-radius: 18px;
+    background: var(--panel);
+    padding: 22px;
+    box-shadow: var(--card-shadow);
+  }
+
+  .hero-diagram-label {
+    font-size: 0.75rem;
+    color: var(--ink-muted);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    margin-bottom: 14px;
+  }
+
+  .day-strip {
+    display: flex;
+    border-radius: 10px;
+    overflow: hidden;
+    height: 56px;
+  }
+
+  .day-strip span {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.72rem;
+  }
+
+  .day-strip .slot-work { background: var(--mood-good-soft); color: var(--mood-good); }
+  .day-strip .slot-wellness { background: var(--accent-soft); color: var(--accent-ink); }
+  .day-strip .slot-mood { background: var(--mood-terrible-soft); color: var(--mood-terrible); }
+  .day-strip .slot-notes { background: var(--mood-okay-soft); color: var(--mood-okay); }
+
+  .day-strip-times {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 8px;
+    font-size: 0.7rem;
+    color: var(--ink-muted);
+  }
+
+  section.timeline {
+    padding: 56px 0 8px;
+    position: relative;
+  }
+
+  .timeline-intro {
+    margin-bottom: 40px;
+  }
+
+  .timeline-intro h2 {
+    font-size: 1.7rem;
+    font-weight: 800;
+  }
+
+  .timeline-intro p {
+    color: var(--ink-muted);
+    max-width: 58ch;
+    margin-top: 12px;
+  }
+
+  .entries {
+    position: relative;
+  }
+
+  .entries::before {
+    content: "";
+    position: absolute;
+    left: 46px;
+    top: 6px;
+    bottom: 6px;
+    width: 2px;
+    background: var(--spine);
+  }
+
+  .entry {
+    position: relative;
+    display: grid;
+    grid-template-columns: 92px 1fr;
+    gap: 20px;
+    padding: 26px 0;
+  }
+
+  .entry + .entry {
+    border-top: 1px dashed var(--panel-line);
+  }
+
+  .entry-time {
+    position: relative;
+    text-align: right;
+    padding-right: 22px;
+    font-size: 0.82rem;
+    color: var(--ink-muted);
+    padding-top: 3px;
+  }
+
+  .entry-time::after {
+    content: "";
+    position: absolute;
+    right: -5px;
+    top: 8px;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--accent);
+    border: 2px solid var(--bg);
+  }
+
+  .entry-body h3 {
+    font-size: 1.15rem;
+    font-weight: 700;
+  }
+
+  .entry-body p {
+    color: var(--ink-muted);
+    margin: 8px 0 0;
+    max-width: 56ch;
+  }
+
+  .entry-tag {
+    display: inline-block;
+    font-size: 0.72rem;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--accent-ink);
+    background: var(--accent-soft);
+    padding: 3px 9px;
+    border-radius: 6px;
+    margin-bottom: 9px;
+  }
+
+  .mood-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 16px;
+  }
+
+  .mood-chip {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 0.82rem;
+    padding: 6px 12px 6px 8px;
+    border-radius: 999px;
+  }
+
+  .mood-chip .dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+  }
+
+  .mood-chip.excellent { background: var(--mood-excellent-soft); color: var(--mood-excellent); }
+  .mood-chip.excellent .dot { background: var(--mood-excellent); }
+  .mood-chip.good { background: var(--mood-good-soft); color: var(--mood-good); }
+  .mood-chip.good .dot { background: var(--mood-good); }
+  .mood-chip.okay { background: var(--mood-okay-soft); color: var(--mood-okay); }
+  .mood-chip.okay .dot { background: var(--mood-okay); }
+  .mood-chip.poor { background: var(--mood-poor-soft); color: var(--mood-poor); }
+  .mood-chip.poor .dot { background: var(--mood-poor); }
+  .mood-chip.terrible { background: var(--mood-terrible-soft); color: var(--mood-terrible); }
+  .mood-chip.terrible .dot { background: var(--mood-terrible); }
+
+  .shot {
+    margin-top: 18px;
+    border: 1.5px dashed var(--panel-line);
+    border-radius: 12px;
+    padding: 18px;
+    background: var(--panel);
+  }
+
+  .shot-label {
+    font-size: 0.78rem;
+    color: var(--ink-muted);
+  }
+
+  .shot-label strong { color: var(--ink); }
+
+  section.flow {
+    padding: 56px 0;
+    border-top: 1px solid var(--panel-line);
+  }
+
+  .flow h2 { font-size: 1.7rem; font-weight: 800; margin-bottom: 10px; }
+  .flow > p { color: var(--ink-muted); max-width: 58ch; margin: 0 0 30px; }
+
+  ol.flow-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 14px;
+  }
+
+  ol.flow-list li {
+    display: grid;
+    grid-template-columns: 34px 1fr;
+    gap: 14px;
+    align-items: baseline;
+    padding: 14px 16px;
+    background: var(--panel);
+    border: 1px solid var(--panel-line);
+    border-radius: 10px;
+  }
+
+  ol.flow-list .num {
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    font-size: 0.85rem;
+    color: var(--accent);
+    font-weight: 700;
+  }
+
+  ol.flow-list strong { display: block; margin-bottom: 2px; }
+  ol.flow-list span.desc { color: var(--ink-muted); font-size: 0.92rem; }
+
+  section.details {
+    padding: 56px 0;
+    border-top: 1px solid var(--panel-line);
+    display: grid;
+    gap: 44px;
+  }
+
+  @media (min-width: 620px) {
+    section.details { grid-template-columns: 1fr 1fr; }
+  }
+
+  .details h3 {
+    font-size: 1.05rem;
+    font-weight: 700;
+    margin-bottom: 12px;
+  }
+
+  .details p { color: var(--ink-muted); font-size: 0.95rem; margin: 0 0 14px; }
+
+  .swatches { display: flex; gap: 8px; }
+  .swatch { width: 30px; height: 30px; border-radius: 8px; border: 1px solid rgba(0,0,0,0.06); }
+
+  .stack-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .stack-list li {
+    font-size: 0.82rem;
+    padding: 6px 12px;
+    border-radius: 999px;
+    background: var(--panel);
+    border: 1px solid var(--panel-line);
+    color: var(--ink);
+  }
+
+  footer {
+    padding: 44px 0 72px;
+    border-top: 1px solid var(--panel-line);
+    color: var(--ink-muted);
+    font-size: 0.9rem;
+  }
+
+  footer a { color: var(--accent); text-decoration: none; }
+  footer a:hover { text-decoration: underline; }
+
+  @media (max-width: 520px) {
+    .entry { grid-template-columns: 66px 1fr; gap: 12px; }
+    .entries::before { left: 30px; }
+    .entry-time { padding-right: 12px; font-size: 0.74rem; }
+  }
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="wrap">
+    <span class="eyebrow">Project overview</span>
+    <h1 class="title">Cal Mood Tracker</h1>
+    <p class="lede">
+      A mobile app for people whose calendar and their mood are basically the same
+      document. It puts wellness breaks, mood check-ins, and notes on the same
+      schedule as meetings, so looking after yourself is one more block in the day
+      instead of a separate thing you never get to.
+    </p>
+    <div class="meta-row">
+      <span class="pill">iOS &amp; Android</span>
+      <span class="pill">Expo / React Native</span>
+      <span class="pill">Offline-first, on-device storage</span>
+    </div>
+
+    <div class="hero-diagram">
+      <div class="hero-diagram-label">A typical day inside the app</div>
+      <div class="day-strip">
+        <span class="slot-work">Work blocks</span>
+        <span class="slot-wellness">5-min wellness</span>
+        <span class="slot-mood">Mood check-in</span>
+        <span class="slot-notes">Notes</span>
+      </div>
+      <div class="day-strip-times">
+        <span class="mono">7:00 AM</span>
+        <span class="mono">2:00 PM</span>
+        <span class="mono">6:00 PM</span>
+        <span class="mono">10:00 PM</span>
+      </div>
+    </div>
+  </div>
+</header>
+
+<section class="timeline">
+  <div class="wrap">
+    <div class="timeline-intro">
+      <h2>How the day actually works</h2>
+      <p>
+        The app is built around the same 7 AM–10 PM window most people actually live
+        in, split into 30-minute slots. Everything below lives on that timeline, not
+        in a separate menu.
+      </p>
+    </div>
+
+    <div class="entries">
+      <div class="entry">
+        <div class="entry-time mono">7:00</div>
+        <div class="entry-body">
+          <span class="entry-tag">Calendar</span>
+          <h3>Day, week, and month views, with work kept apart from everything else</h3>
+          <p>
+            Two calendars run side by side, work in blue and personal in green, so a
+            packed workday and a quiet evening are still visibly different things at
+            a glance. Day view breaks the day into Morning, Work Time, and Evening.
+          </p>
+          <div class="shot">
+            <span class="shot-label"><strong>Screenshot slot:</strong> Day view with a mix of work meetings and a personal event, showing the dual blue/green calendars.</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="entry">
+        <div class="entry-time mono">2:00</div>
+        <div class="entry-body">
+          <span class="entry-tag">Wellness</span>
+          <h3>Five-minute activities you can actually fit into a packed afternoon</h3>
+          <p>
+            A small library of short wellness activities can be dropped straight into
+            an open slot, the same way you'd add a meeting. The idea is to lower the
+            bar enough that a break actually happens instead of getting pushed to
+            tomorrow.
+          </p>
+          <div class="shot">
+            <span class="shot-label"><strong>Screenshot slot:</strong> The wellness activity library open next to a day view, mid-drag into a 2:00 PM slot.</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="entry">
+        <div class="entry-time mono">6:00</div>
+        <div class="entry-body">
+          <span class="entry-tag">Mood</span>
+          <h3>A five-point mood scale, logged in a couple of taps</h3>
+          <p>
+            Excellent, Good, Okay, Poor, or Terrible, with an optional note attached.
+            Logged entries build into a history you can look back over, so a bad
+            Tuesday reads as a data point instead of the whole week.
+          </p>
+          <div class="mood-legend">
+            <span class="mood-chip excellent"><span class="dot"></span>Excellent</span>
+            <span class="mood-chip good"><span class="dot"></span>Good</span>
+            <span class="mood-chip okay"><span class="dot"></span>Okay</span>
+            <span class="mood-chip poor"><span class="dot"></span>Poor</span>
+            <span class="mood-chip terrible"><span class="dot"></span>Terrible</span>
+          </div>
+          <div class="shot">
+            <span class="shot-label"><strong>Screenshot slot:</strong> The mood picker mid-selection, plus the weekly insights view showing a run of entries.</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="entry">
+        <div class="entry-time mono">8:30</div>
+        <div class="entry-body">
+          <span class="entry-tag">Notes</span>
+          <h3>Notes that save themselves, for the thought you don't want to lose</h3>
+          <p>
+            A running place for tasks and general notes that sits apart from the
+            calendar, for things that don't need their own event and don't need you
+            to remember to hit save.
+          </p>
+        </div>
+      </div>
+
+      <div class="entry">
+        <div class="entry-time mono">9:30</div>
+        <div class="entry-body">
+          <span class="entry-tag">Stats</span>
+          <h3>The week, added up</h3>
+          <p>
+            A dashboard totals events, wellness activities, mood entries, and streaks,
+            with a mood distribution chart and weekly and monthly summaries, so
+            patterns show up without anyone having to go digging for them.
+          </p>
+          <div class="shot">
+            <span class="shot-label"><strong>Screenshot slot:</strong> The stats dashboard with a streak counter and mood distribution chart populated by a few weeks of real use.</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="flow">
+  <div class="wrap">
+    <h2>First run, start to finish</h2>
+    <p>What a new user actually walks through, in order.</p>
+    <ol class="flow-list">
+      <li><span class="num">01</span><div><strong>Onboarding</strong><span class="desc">A short first-run walkthrough before anything else opens.</span></div></li>
+      <li><span class="num">02</span><div><strong>Sign up or log in</strong><span class="desc">Gets an account attached to the data that follows.</span></div></li>
+      <li><span class="num">03</span><div><strong>Dashboard</strong><span class="desc">Today's schedule, today's mood, and quick stats in one screen.</span></div></li>
+      <li><span class="num">04</span><div><strong>Calendar</strong><span class="desc">Add events and wellness activities, switch between day, week, and month.</span></div></li>
+      <li><span class="num">05</span><div><strong>Mood tracker</strong><span class="desc">Log how the day is going, see the pattern building over time.</span></div></li>
+      <li><span class="num">06</span><div><strong>Notes</strong><span class="desc">Capture whatever doesn't belong on the calendar.</span></div></li>
+      <li><span class="num">07</span><div><strong>Stats</strong><span class="desc">Check progress, streaks, and mood trends.</span></div></li>
+      <li><span class="num">08</span><div><strong>Settings</strong><span class="desc">Adjust colors, fonts, and how the app looks and behaves.</span></div></li>
+    </ol>
+  </div>
+</section>
+
+<section class="details">
+  <div class="wrap" style="display: contents;">
+    <div>
+      <h3>Design</h3>
+      <p>
+        Pastel throughout, purple, pink, green, blue, and orange, used mostly as the
+        mood-state colors above rather than scattered decoration. Clean, minimal
+        layouts, modern sans-serif type, and accessible contrast even at pastel
+        saturation.
+      </p>
+      <div class="swatches">
+        <div class="swatch" style="background: var(--mood-excellent);"></div>
+        <div class="swatch" style="background: var(--mood-good);"></div>
+        <div class="swatch" style="background: var(--mood-okay);"></div>
+        <div class="swatch" style="background: var(--mood-poor);"></div>
+        <div class="swatch" style="background: var(--mood-terrible);"></div>
+      </div>
+    </div>
+    <div>
+      <h3>Built with</h3>
+      <p>Data lives in AsyncStorage on the device: accounts, events, mood entries, notes, settings, and stats, with no backend in the loop today.</p>
+      <ul class="stack-list">
+        <li>React Native</li>
+        <li>Expo</li>
+        <li>AsyncStorage</li>
+        <li>iOS &amp; Android</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    Cal Mood Tracker is a personal project, built for demonstration purposes.
+    Source on <a href="https://github.com/susangadegone/cal-mood-tracker">GitHub</a>.
+  </div>
+</footer>
+
+</body>
+</html>
